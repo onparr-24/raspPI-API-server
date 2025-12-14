@@ -48,7 +48,8 @@ const ERRORS = {
     NPM_INSTALL_FAILED: 'Failed to install',
     PM2_RESTART_FAILED: 'Failed to restart PM2',
     DISK_SPACE_FAILED: 'Failed to get disk space',
-    MEMORY_FAILED: 'Failed to get memory'
+    MEMORY_FAILED: 'Failed to get memory',
+    HEALTH_CHECK_FAILED: 'Failed to get system health'
 };
 
 module.exports = {

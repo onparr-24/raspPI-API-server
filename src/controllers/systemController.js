@@ -1,4 +1,4 @@
-const { getDiskSpace, getMemory } = require('../services/systemService');
+const { getDiskSpace, getMemory, getHealth } = require('../services/systemService');
 
 
 const getStorageInfo = async (req, res) => {
@@ -31,7 +31,23 @@ const getMemoryInfo = async (req, res) => {
     }
 };
 
+const getHealthInfo = async (req, res) => {
+    try {
+        const healthInfo = await getHealth();
+        res.status(200).json({
+            success: true,
+            memory: healthInfo
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+};
+
 module.exports = {
     getStorageInfo,
     getMemoryInfo,
+    getHealthInfo,
 };
