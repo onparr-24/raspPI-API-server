@@ -207,32 +207,117 @@ const getHealth = async () => {
                 };
             }
         } else {
-            // Linux implementation
-            const devices = await execCommand('lsblk -d -o NAME | tail -n +2');
+            // Linux implementation (including Raspberry Pi)
             const healthData = [];
+            let deviceList = 'No devices found';
+            let smartctlAvailable = false;
             
-            for (const device of devices.split('\n')) {
-                if (device.trim()) {
-                    try {
-                        const smartOutput = await execCommand(`smartctl -a /dev/${device.trim()}`);
-                        const healthSummary = await execCommand(`smartctl -H /dev/${device.trim()}`);
-                        
-                        healthData.push({
-                            device: device.trim(),
-                            smartData: smartOutput,
-                            healthSummary: healthSummary
-                        });
-                    } catch (error) {
-                        // Skip devices that don't support SMART
+            try {
+                // Check if smartctl is available
+                await execCommand('which smartctl');
+                smartctlAvailable = true;
+            } catch (error) {
+                // smartctl not available
+            }
+            
+            try {
+                // Get basic device information
+                deviceList = await execCommand('lsblk -d -o NAME,SIZE,TYPE,MODEL');
+            } catch (error) {
+                try {
+                    // Fallback to simpler command
+                    deviceList = await execCommand('lsblk');
+                } catch (error2) {
+                    deviceList = 'lsblk command failed';
+                }
+            }
+            
+            if (smartctlAvailable) {
+                try {
+                    // Try to scan for SMART devices
+                    const smartScan = await execCommand('smartctl --scan');
+                    const smartDevices = smartScan.split('\n').filter(line => line.trim() && !line.startsWith('#'));
+                    
+                    for (const deviceLine of smartDevices) {
+                        const device = deviceLine.split(' ')[0];
+                        if (device) {
+                            try {
+                                const smartOutput = await execCommand(`smartctl -a ${device}`);
+                                const healthSummary = await execCommand(`smartctl -H ${device}`);
+                                
+                                healthData.push({
+                                    device: device,
+                                    smartData: smartOutput,
+                                    healthSummary: healthSummary
+                                });
+                            } catch (error) {
+                                // Skip devices that don't support SMART or require sudo
+                                healthData.push({
+                                    device: device,
+                                    error: `SMART not accessible: ${error.message}`,
+                                    note: 'May require sudo privileges'
+                                });
+                            }
+                        }
+                    }
+                } catch (error) {
+                    // Fallback: try common device paths
+                    const commonDevices = ['/dev/sda', '/dev/sdb', '/dev/nvme0n1', '/dev/mmcblk0'];
+                    
+                    for (const device of commonDevices) {
+                        try {
+                            const healthSummary = await execCommand(`smartctl -H ${device}`);
+                            const smartOutput = await execCommand(`smartctl -a ${device}`);
+                            
+                            healthData.push({
+                                device: device,
+                                smartData: smartOutput,
+                                healthSummary: healthSummary
+                            });
+                        } catch (error) {
+                            // Device doesn't exist or doesn't support SMART
+                        }
                     }
                 }
             }
             
+            // Get additional system information
+            let cpuTemp = 'Not available';
+            let diskUsage = 'Not available';
+            
+            try {
+                // Try to get CPU temperature (common on Raspberry Pi)
+                cpuTemp = await execCommand('cat /sys/class/thermal/thermal_zone0/temp');
+                if (cpuTemp && !isNaN(cpuTemp.trim())) {
+                    cpuTemp = `${(parseInt(cpuTemp.trim()) / 1000).toFixed(1)}°C`;
+                }
+            } catch (error) {
+                try {
+                    // Alternative temperature command
+                    cpuTemp = await execCommand('vcgencmd measure_temp');
+                } catch (error2) {
+                    cpuTemp = 'Temperature sensor not accessible';
+                }
+            }
+            
+            try {
+                diskUsage = await execCommand('df -h');
+            } catch (error) {
+                diskUsage = 'Disk usage command failed';
+            }
+            
             return { 
                 devices: healthData,
+                deviceList: deviceList,
+                cpuTemperature: cpuTemp,
+                diskUsage: diskUsage,
+                smartctlAvailable: smartctlAvailable,
                 adminPrivileges: isAdmin,
                 platform: 'Linux',
-                timestamp: new Date().toISOString()
+                timestamp: new Date().toISOString(),
+                note: smartctlAvailable ? 
+                    (isAdmin ? 'SMART monitoring active' : 'Some SMART features may require sudo') :
+                    'For SMART monitoring: sudo apt-get install smartmontools'
             };
         }
     } catch (error) {
