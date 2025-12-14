@@ -6,6 +6,10 @@ const { exec } = require('child_process');
 const fs = require('fs').promises;
 const path = require('path');
 
+const version = () => {
+    return 0.03
+}
+
 const getOS = async () => {
     const platform = os.platform();
 
@@ -60,7 +64,8 @@ const pullUpdates = async () => {
 app.get('/api/status', async (req, res) => {
   res.status(200).json({ 
     status: 'Server is running',
-    platform: await getOS()
+    platform: await getOS(),
+    version: version()
   });
 });
 
