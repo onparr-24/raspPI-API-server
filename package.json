@@ -8,7 +8,7 @@
     "dev": "node server.js",
     "stop": "pkill -f \"node server.js\"",
     "restart": "npm run stop && npm start",
-    "update": "echo 'Checking for updates...' && curl -s -X POST http://raspberrypi-2.local:3000/api/update && pm2 restart raspberrypi-api",
+    "update": "echo 'Checking for updates...' && curl -s -X POST http://raspberrypi-2.local:3000/api/update",
     "check-updates": "echo 'Checking update status...' && curl -s http://raspberrypi-2.local:3000/api/check-updates",
     "pm2-start": "pm2 start server.js --name raspberrypi-api",
     "pm2-stop": "pm2 stop raspberrypi-api",

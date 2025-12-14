@@ -7,7 +7,7 @@ const fs = require('fs').promises;
 const path = require('path');
 
 const version = () => {
-    return '0.0.9'
+    return '0.0.10'
 }
 
 const getOS = async () => {
@@ -66,6 +66,19 @@ const pullUpdates = async () => {
     }
 }
 
+const restartPM2 = async () => {
+    try {
+        if (process.env.PM2_HOME) {
+            await execCommand('pm2 restart raspberrypi-api');
+            return 'PM2 restart initiated';
+        } else {
+            return 'Not running under PM2, manual restart required';
+        }
+    } catch (error) {
+        throw new Error(`Failed to restart PM2: ${error.error || error.message}`);
+    }
+}
+
 app.get('/api/status', async (req, res) => {
   res.status(200).json({ 
     status: 'Server is running',
@@ -104,13 +117,23 @@ app.post('/api/update', async (req, res) => {
         }
 
         const pullResult = await pullUpdates();
-
+        
+        // Send response first
         res.status(200).json({
             success: true,
-            message: 'Updates pulled successfully.',
+            message: 'Updates pulled successfully. Restarting server...',
             updated: true,
             pullResult: pullResult
         });
+
+        setTimeout(async () => {
+            try {
+                await restartPM2();
+            } catch (error) {
+                console.error('Failed to restart PM2:', error.message);
+            }
+        }, 1000);
+
     } catch (error) {
         res.status(500).json({
             success: false,
