@@ -7,7 +7,7 @@ const fs = require('fs').promises;
 const path = require('path');
 
 const version = () => {
-    return '0.0.7'
+    return '0.0.8'
 }
 
 const getOS = async () => {
@@ -54,7 +54,12 @@ const checkForUpdates = async () => {
 
 const pullUpdates = async () => {
     try {
-        const pullResult = await execCommand('git pull origin main');
+        let pullResult;
+        try {
+            pullResult = await execCommand('git pull origin main');
+        } catch (error) {
+            pullResult = await execCommand('git pull origin master');
+        }
         return pullResult;
     } catch (error) {
         throw new Error(`Failed to pull updates: ${error.error || error.message}`);
