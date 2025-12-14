@@ -33,11 +33,20 @@ const updateServer = async (req, res) => {
 
         const pullResult = await pullUpdates();
 
+        // Log full result to console for debugging
+        console.log('Git pull completed:');
+        console.log(pullResult);
+
+        // Truncate long git output for cleaner response
+        const truncatedResult = pullResult.length > 500 
+            ? pullResult.substring(0, 500) + '...\n[Output truncated - check server logs for full details]'
+            : pullResult;
+
         res.status(200).json({
             success: true,
             message: MESSAGES.UPDATE_SUCCESS,
             updated: true,
-            pullResult: pullResult
+            pullResult: truncatedResult
         });
 
         setTimeout(async () => {

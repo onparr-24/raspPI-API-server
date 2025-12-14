@@ -1,7 +1,7 @@
 // Application configuration constants
 const APP_CONFIG = {
     PORT: 3000,
-    VERSION: '0.0.12',
+    VERSION: '0.0.13',
     PM2_PROCESS_NAME: 'raspberrypi-api',
     HOSTNAME: 'raspberrypi-2'
 };
