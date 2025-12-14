@@ -1,6 +1,6 @@
 {
   "name": "raspberrypi-api-server",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "API server for Raspberry Pi with GitHub update functionality",
   "main": "server.js",
   "scripts": {
@@ -8,11 +8,12 @@
     "dev": "node server.js",
     "stop": "pkill -f \"node server.js\"",
     "restart": "npm run stop && npm start",
-    "update": "curl -X POST http://raspberrypi-2.local:3000/api/update",
-    "check-updates": "curl http://raspberrypi-2.local:3000/api/check-updates",
+    "update": "echo 'Checking for updates...' && curl -s -X POST http://raspberrypi-2.local:3000/api/update",
+    "check-updates": "echo 'Checking update status...' && curl -s http://raspberrypi-2.local:3000/api/check-updates",
     "pm2-start": "pm2 start server.js --name api-server",
     "pm2-stop": "pm2 stop api-server",
     "pm2-restart": "pm2 restart api-server",
+    "pm2-update": "echo 'Updating and restarting...' && curl -s -X POST http://raspberrypi-2.local:3000/api/update && npm run pm2-restart",
     "status": "pm2 status",
     "logs": "pm2 logs api-server"
   },
