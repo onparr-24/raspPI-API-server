@@ -1,148 +1,14 @@
 const express = require('express');
-const app = express();
-const PORT = 3000;
 const os = require('os');
-const { exec } = require('child_process');
-const fs = require('fs').promises;
-const path = require('path');
+const { APP_CONFIG } = require('./src/config/constants');
+const apiRoutes = require('./src/routes');
 
-const version = () => {
-    return '0.0.11'
-}
+const app = express();
 
-const getOS = async () => {
-    const platform = os.platform();
+// Use API routes
+app.use('/api', apiRoutes);
 
-    switch(platform) {
-        case 'win32':
-            return 'Windows';
-        case 'darwin':
-            return 'Mac OS';
-        case 'linux':
-            return 'Linux'
-        default:
-            return platform;
-    }
-}
-
-const execCommand = (command) => {
-    return new Promise((resolve,reject) => {
-        exec(command, (error, stdout, stderr) => {
-            if (error) {
-                reject({error: error.message, stderr});
-            } else {
-                resolve(stdout.trim());
-            }
-        });
-    });
-};
-
-const checkForUpdates = async () => {
-    try {
-        await execCommand('git fetch origin');
-
-        const result = await execCommand('git status -uno');
-
-        return {
-            hasUpdates: result.includes('Your branch is behind'),
-            status: result
-        };
-    } catch (error) {
-        throw new Error(`Failed to check for updates: ${error.error || error.message}`);
-    }
-}
-
-const pullUpdates = async () => {
-    try {
-        let pullResult;
-        try {
-            pullResult = await execCommand('git pull origin main');
-        } catch (error) {
-            pullResult = await execCommand('git pull origin master');
-        }
-        return pullResult;
-    } catch (error) {
-        throw new Error(`Failed to pull updates: ${error.error || error.message}`);
-    }
-}
-
-const restartPM2 = async () => {
-    try {
-        if (process.env.PM2_HOME) {
-            await execCommand('pm2 restart raspberrypi-api');
-            return 'PM2 restart initiated';
-        } else {
-            return 'Not running under PM2, manual restart required';
-        }
-    } catch (error) {
-        throw new Error(`Failed to restart PM2: ${error.error || error.message}`);
-    }
-}
-
-app.get('/api/status', async (req, res) => {
-  res.status(200).json({ 
-    status: 'Server is running',
-    platform: await getOS(),
-    version: version()
-  });
-});
-
-app.get('/api/check-updates', async (req, res) => {
-    try {
-        const updateInfo = await checkForUpdates();
-        res.status(200).json({
-            success: true,
-            hasUpdates: updateInfo.hasUpdates,
-            message: updateInfo.hasUpdates ? 'Updates available' : 'No updates available',
-            gitStatus: updateInfo.status  
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
-    }
-});
-
-app.post('/api/update', async (req, res) => {
-    try {
-        const updateInfo = await checkForUpdates();
-
-        if(!updateInfo.hasUpdates) {
-            return res.status(200).json({
-                success: true,
-                message: 'No updates available.',
-                updated: false
-            });
-        }
-
-        const pullResult = await pullUpdates();
-        
-        // Send response first
-        res.status(200).json({
-            success: true,
-            message: 'Updates pulled successfully. Restarting server...',
-            updated: true,
-            pullResult: pullResult
-        });
-
-        setTimeout(async () => {
-            try {
-                await restartPM2();
-            } catch (error) {
-                console.error('Failed to restart PM2:', error.message);
-            }
-        }, 1000);
-
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
-    }
-});
-
-app.listen(PORT, '0.0.0.0', () => {
+app.listen(APP_CONFIG.PORT, '0.0.0.0', () => {
   const hostname = os.hostname();
   const networkInterfaces = os.networkInterfaces();
   
@@ -165,17 +31,17 @@ app.listen(PORT, '0.0.0.0', () => {
   
   console.log(`Hostname: ${hostname}`);
   console.log(`API server listening at:`);
-  console.log(`  - http://localhost:${PORT}/api/status`);
-  console.log(`  - http://${hostname}.local:${PORT}/api/status`);
+  console.log(`  - http://localhost:${APP_CONFIG.PORT}/api/status`);
+  console.log(`  - http://${hostname}.local:${APP_CONFIG.PORT}/api/status`);
   
   if (ipv4Address) {
-    console.log(`  - http://${ipv4Address}:${PORT}/api/status (IPv4)`);
+    console.log(`  - http://${ipv4Address}:${APP_CONFIG.PORT}/api/status (IPv4)`);
   }
   
-  console.log(`Server bound to all interfaces (0.0.0.0:${PORT})`);
+  console.log(`Server bound to all interfaces (0.0.0.0:${APP_CONFIG.PORT})`);
   console.log(`\nTry these URLs from your iPhone:`);
-  console.log(`  1. http://${hostname}.local:${PORT}/api/status`);
+  console.log(`  1. http://${hostname}.local:${APP_CONFIG.PORT}/api/status`);
   if (ipv4Address) {
-    console.log(`  2. http://${ipv4Address}:${PORT}/api/status`);
+    console.log(`  2. http://${ipv4Address}:${APP_CONFIG.PORT}/api/status`);
   }
 });
