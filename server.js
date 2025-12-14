@@ -6,7 +6,6 @@ const { exec } = require('child_process');
 const fs = require('fs').promises;
 const path = require('path');
 
-
 const getOS = async () => {
     const platform = os.platform();
 
@@ -114,21 +113,36 @@ app.listen(PORT, '0.0.0.0', () => {
   const hostname = os.hostname();
   const networkInterfaces = os.networkInterfaces();
   
-  // Get the first non-internal IPv4 address
-  let localIP = 'localhost';
+  // Get IPv4 and IPv6 addresses
+  let ipv4Address = null;
+  let ipv6Address = null;
+  
   for (const name of Object.keys(networkInterfaces)) {
     for (const net of networkInterfaces[name]) {
-      if (net.family === 'IPv4' && !net.internal) {
-        localIP = net.address;
-        break;
+      if (!net.internal) {
+        if (net.family === 'IPv4' && !ipv4Address) {
+          ipv4Address = net.address;
+        }
+        if (net.family === 'IPv6' && !ipv6Address && !net.address.startsWith('fe80')) {
+          ipv6Address = net.address;
+        }
       }
     }
-    if (localIP !== 'localhost') break;
   }
   
   console.log(`Hostname: ${hostname}`);
-  console.log(`API server listening at http://localhost:${PORT}/api/status`);
-  console.log(`Also accessible at http://${hostname}.local:${PORT}/api/status`);
-  console.log(`Or via IP: http://${localIP}:${PORT}/api/status`);
+  console.log(`API server listening at:`);
+  console.log(`  - http://localhost:${PORT}/api/status`);
+  console.log(`  - http://${hostname}.local:${PORT}/api/status`);
+  
+  if (ipv4Address) {
+    console.log(`  - http://${ipv4Address}:${PORT}/api/status (IPv4)`);
+  }
+  
   console.log(`Server bound to all interfaces (0.0.0.0:${PORT})`);
+  console.log(`\nTry these URLs from your iPhone:`);
+  console.log(`  1. http://${hostname}.local:${PORT}/api/status`);
+  if (ipv4Address) {
+    console.log(`  2. http://${ipv4Address}:${PORT}/api/status`);
+  }
 });
