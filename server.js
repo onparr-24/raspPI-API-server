@@ -111,7 +111,24 @@ app.post('/api/update', async (req, res) => {
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-  const hostname = os.hostname()
+  const hostname = os.hostname();
+  const networkInterfaces = os.networkInterfaces();
+  
+  // Get the first non-internal IPv4 address
+  let localIP = 'localhost';
+  for (const name of Object.keys(networkInterfaces)) {
+    for (const net of networkInterfaces[name]) {
+      if (net.family === 'IPv4' && !net.internal) {
+        localIP = net.address;
+        break;
+      }
+    }
+    if (localIP !== 'localhost') break;
+  }
+  
+  console.log(`Hostname: ${hostname}`);
   console.log(`API server listening at http://localhost:${PORT}/api/status`);
-  console.log(`Also accessible at http://${hostname}.local:${PORT}/api/status`)
+  console.log(`Also accessible at http://${hostname}.local:${PORT}/api/status`);
+  console.log(`Or via IP: http://${localIP}:${PORT}/api/status`);
+  console.log(`Server bound to all interfaces (0.0.0.0:${PORT})`);
 });
