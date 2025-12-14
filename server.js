@@ -7,7 +7,7 @@ const fs = require('fs').promises;
 const path = require('path');
 
 const version = () => {
-    return 0.03
+    return '0.0.4'
 }
 
 const getOS = async () => {
